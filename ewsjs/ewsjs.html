@@ -1,0 +1,168 @@
+<html>
+	<head>
+		<title>Demo ewsjs Page</title>
+		<script src="jquery-1.4.2.min.js"></script>
+		<script src="ewsjs.js"></script>
+		<script type="text/javascript">
+			(function($) {
+				var h, i, dbcache, id, route, findById, router;
+
+				// initialize our database and auto-increment
+				id = 0;
+				dbcache = {person: []};
+				
+				findById = function(id) {
+					var ret = null, i;
+					for (i=0;i<dbcache.person.length;i++) {
+						if (dbcache.person[i].id === id+"") {
+							ret = i;
+							break;
+						}
+					}
+					return(ret);
+				};
+				
+				router = {
+					"/person": {
+						"GET": function(method,url,data,db,p) {
+							// get the persons from our db
+							return({success: true, response: dbcache.person, status: "200"});
+						},
+						"POST": function(method,url,data,db,p) {
+							// increment the unique ID
+							id++;
+							data.id = id+""; // we keep string IDs
+							dbcache.person.push(data);
+							return({success:true,response:id,status:"201"});
+						}
+					},
+					"/person/:id": {
+						"GET": function(method,url,data,db,p) {
+							var idx = findById(p.id), ret;
+							if (idx) {
+								ret = {success: true, response: JSON.stringify(dbcache.person[idx]), status: "200"};
+							} else {
+								ret = {success: false, status: "404", response: null};
+							}
+
+							return(ret);
+						},
+						"PUT": function(method,url,data,db,p) {
+							var ret, idx = findById(p.id);
+							if (idx) {
+								dbcache.person[idx].firstName = data.firstName;
+								dbcache.person[idx].lastName = data.lastName;
+								ret = {success: true, status: "200", response: null};
+							} else {
+								ret = {success: false, status: "404", response: null};
+							}
+							return(ret);
+						},
+						"DELETE": function(method,url,data,db,p) {
+							var ret, idx = findById(p.id);
+							if (idx) {
+								dbcache.person.splice(idx,1);
+								ret = {success:true,status: "200",response:null};
+							} else {
+								ret = {success:false,status: "404",response:null};
+							}
+							return(ret);
+						}
+					}
+				};
+				// simple to wrap around the actual handler, makes it easier to handle GET/PUT/POST/DELETE
+				var handlerFn = function(r) {
+					return function(method,url,data,db,p){
+						if (r[method]) {
+							return(r[method](method,url,data,db,p));
+						}
+					};
+				};
+				for (route in router) {
+					if (router.hasOwnProperty(route)) {
+						EWS.registerHandler(route,handlerFn(router[route]));
+					}
+				}
+
+			}(jQuery));
+		</script>
+		<script type="text/javascript">
+			// use our ajax instead
+			var ajax = EWS.ajax;
+			$(document).ready(function(){
+				var refresh = function() {
+					ajax({type: "GET", url: "/person", success: function(res,status) {
+						var i, tbody = $("table tbody"), tr;
+						// empty the old out
+						tbody.empty();
+						// add each row
+						for (i=0;i<res.length;i++) {
+							tr = $("<tr></tr>");
+							$("<td></td>").addClass("personid").text(res[i].id).appendTo(tr);
+					$("<td></td>").append($("<input></input>").attr("type","text").attr("name","firstname").val(res[i].firstName)).appendTo(tr);					$("<td></td>").append($("<input></input>").attr("type","text").attr("name","lastname").val(res[i].lastName)).appendTo(tr);	$("<td></td>").append($("<input></input>").attr("type","button").attr("name","delete").val("Delete")).appendTo(tr);					$("<td></td>").append($("<input></input>").attr("type","button").attr("name","save").val("Save")).appendTo(tr);
+							tr.appendTo(tbody);
+						}
+						// add the new row
+						tr = $("<tr></tr>");
+						$("<td></td>").addClass("personid").text("NEW").appendTo(tr);
+			$("<td></td>").append($("<input></input>").attr("type","text").attr("name","firstname").val("")).appendTo(tr);							$("<td></td>").append($("<input></input>").attr("type","text").attr("name","lastname").val("")).appendTo(tr);		
+						$("<td></td>").appendTo(tr);					$("<td></td>").append($("<input></input>").attr("type","button").attr("name","addnew").val("Add New")).appendTo(tr);
+								tr.appendTo(tbody);
+					},dataType: "json"});
+				};
+				// wire up the "Add New" button
+				$(":input[name=addnew]").live("click",function(e){
+					// get the first name and last name
+					var row = $(this).closest("tr");
+					var firstName = row.find(":input[name=firstname]").val();
+					var lastName = row.find(":input[name=lastname]").val();
+					ajax({type: "POST",url:"/person",data: {firstName: firstName, lastName: lastName}, success: function(res, status) {
+						refresh();
+					},dataType: "json"});
+				});
+				// wire up the "Save" button
+				$(":input[name=save]").live("click",function(e){
+					// get the first name and last name
+					var row = $(this).closest("tr");
+					var firstName = row.find(":input[name=firstname]").val();
+					var lastName = row.find(":input[name=lastname]").val();
+					var id = row.find("td.personid").text();
+					ajax({type: "PUT",url:"/person/"+id,data: {firstName: firstName, lastName: lastName}, success: function(res, status) {
+						refresh();
+						
+					},dataType: "json"});
+				});
+				// wire up the "Delete" button
+				$(":input[name=delete]").live("click",function(e){
+					// get the first name and last name
+					var row = $(this).closest("tr");
+					var id = row.find("td.personid").text();
+					ajax({type: "DELETE",url:"/person/"+id, success: function(res, status) {
+						refresh();
+					},dataType: "json"});
+				});
+				refresh();
+			});
+		</script>
+	</head>
+	<body>
+		<h2>Demo ewsjs Page</h2>
+		<div>
+			This page demonstrates the embedded Web server <a href="http://code.google.com/p/ewsjs">http://code.google.com/p/ewsjs</a>
+			ewsjs library. To use this page, you can do some basic CRUD operations, which map to REST activities, entirely within the
+			browser.
+		</div>
+		<div>
+			
+			<table>
+				<thead>
+					<tr><th>ID</th><th>First Name</th><th>Last Name</th><th>Delete</th><th>Save</th></tr>
+				</thead>
+				<tbody>
+					<tr><td class="personid">NEW</td><td><input type="text" name="firstname"></td><td><input type="text" name="lastname"></td><td></td><td><input type="button" value="Add New" name="addnew"></input></td></tr>
+				</tbody>
+			</table>
+		</div>
+		
+	</body>
+</html>
