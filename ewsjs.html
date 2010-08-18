@@ -1,7 +1,7 @@
 <html>
 	<head>
 		<title>Demo ewsjs Page</title>
-		<script src="jquery-1.4.2.min.js"></script>
+		<script src="jquery-1.4.2.js"></script>
 		<script src="ewsjs.js"></script>
 		<script type="text/javascript">
 			(function($) {
@@ -12,7 +12,7 @@
 				dbcache = {person: []};
 				
 				findById = function(id) {
-					var ret = null, i;
+					var ret = -1, i;
 					for (i=0;i<dbcache.person.length;i++) {
 						if (dbcache.person[i].id === id+"") {
 							ret = i;
@@ -24,47 +24,47 @@
 				
 				router = {
 					"/person": {
-						"GET": function(method,url,data,db,p) {
+						"GET": function(method,url,headers,data,db,p) {
 							// get the persons from our db
-							return({success: true, response: dbcache.person, status: "200"});
+							return({status: 200, response: dbcache.person, headers: {"Content-Type":"application/json"}});
 						},
-						"POST": function(method,url,data,db,p) {
+						"POST": function(method,url,headers,data,db,p) {
 							// increment the unique ID
 							id++;
 							data.id = id+""; // we keep string IDs
 							dbcache.person.push(data);
-							return({success:true,response:id,status:"201"});
+							return({status:201,response:id,headers: {"Content-Type":"text/plain"}});
 						}
 					},
 					"/person/:id": {
-						"GET": function(method,url,data,db,p) {
+						"GET": function(method,url,headers,data,db,p) {
 							var idx = findById(p.id), ret;
-							if (idx) {
-								ret = {success: true, response: JSON.stringify(dbcache.person[idx]), status: "200"};
+							if (idx > -1) {
+								ret = {status: 200, response: JSON.stringify(dbcache.person[idx]),headers: {"Content-Type":"application/json"}};
 							} else {
-								ret = {success: false, status: "404", response: null};
+								ret = {status: 404};
 							}
 
 							return(ret);
 						},
-						"PUT": function(method,url,data,db,p) {
+						"PUT": function(method,url,headers,data,db,p) {
 							var ret, idx = findById(p.id);
-							if (idx) {
+							if (idx > -1) {
 								dbcache.person[idx].firstName = data.firstName;
 								dbcache.person[idx].lastName = data.lastName;
-								ret = {success: true, status: "200", response: null};
+								ret = {status: 200};
 							} else {
-								ret = {success: false, status: "404", response: null};
+								ret = {status: 404};
 							}
 							return(ret);
 						},
-						"DELETE": function(method,url,data,db,p) {
+						"DELETE": function(method,url,headers,data,db,p) {
 							var ret, idx = findById(p.id);
-							if (idx) {
+							if (idx > -1) {
 								dbcache.person.splice(idx,1);
-								ret = {success:true,status: "200",response:null};
+								ret = {status:200};
 							} else {
-								ret = {success:false,status: "404",response:null};
+								ret = {status:404};
 							}
 							return(ret);
 						}
@@ -72,9 +72,9 @@
 				};
 				// simple to wrap around the actual handler, makes it easier to handle GET/PUT/POST/DELETE
 				var handlerFn = function(r) {
-					return function(method,url,data,db,p){
+					return function(method,url,headers,data,db,p){
 						if (r[method]) {
-							return(r[method](method,url,data,db,p));
+							return(r[method](method,url,headers,data,db,p));
 						}
 					};
 				};
@@ -88,7 +88,8 @@
 		</script>
 		<script type="text/javascript">
 			// use our ajax instead
-			var ajax = EWS.ajax;
+			EWS.enable(true);
+			var ajax = $.ajax;
 			$(document).ready(function(){
 				var refresh = function() {
 					ajax({type: "GET", url: "/person", success: function(res,status) {
