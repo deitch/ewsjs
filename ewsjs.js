@@ -20,7 +20,7 @@ var EWS = function() {
 	// utility functions: fork, sjax, localGet
 	fork = function() {
 		var fn, window = this;
-		if (window && window.setTimeout && typeof(window.setTimeout) === "function") {
+		if (window && window.setTimeout) {
 			fn = function(f) {window.setTimeout(f,1);};
 		} else {
 			// we have no fork option, so return null
