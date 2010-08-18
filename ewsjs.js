@@ -1,6 +1,8 @@
 /*
  * Embedded Web server. Receives requests for PUT/POST/GET/DELETE and figures out what to do.
  * Useful when there is no real server to use.
+ * 
+ * Switch from intercepting framework to the browser - special credit to Yotam Rabinerson for his idea
  */
 /*global window */
 var EWS = function() {
