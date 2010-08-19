@@ -1,0 +1,11 @@
+ewsjs is an embedded Web server inside your browser. When developing Ajax-based and single-page-applications, it is often very difficult to test these applications until a Web server is in place.
+
+EWS provides an embedded Web server that looks to your Ajax application as if it is coming from the server. You can put in any logic and fully test out your Ajax application within the browser, without running a server.
+
+EWS supports several key features:
+
+Registering handlers for any path
+Registering handlers for parametrized paths, like Sinatra routes
+Registering a handler for automatic, when no other handler matches
+Rewriting of one path to another, like in Apache or nginx
+Asynchronous, exactly mimicking true ajax calls
