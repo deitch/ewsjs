@@ -9,7 +9,7 @@ var EWS = function() {
 	// handlers
 	var handlers = {path: {}, regex: []}, rewrites = [], auto = false, autoIndex = false;
 	var originalXmlHttp, originalActiveX, replaceXmlHttp, replaceActiveX, isEnabled = false;
-	var processCall, isDirListing, fork, sjax;
+	var processCall, isDirListing, fork, sjax, paramSplitter;
 	
 	// hold data across calls
 	var db = {};
@@ -34,6 +34,26 @@ var EWS = function() {
 			fn(function(){f.apply(scope,arg);});		
 		} : fn);
 	}();
+	
+	/*
+	 * Split a param string
+	 */
+	paramSplitter = function(param, d2) {
+		var d = param.split("&"), parts, key, value, i;
+		d2 = d2 || {};
+		for (i=0;i<d.length;i++) {
+			parts = d[i].split("=");
+			if (parts.length > 0) {
+				key = parts[0].replace("+"," ");
+
+			}
+			value = parts.length > 1 ? parts[1].replace("+"," ") : "";
+			if (key && key !== "") {
+				d2[key] = value;
+			}
+		}
+		return(d2);
+	};
 	
 	/*
 	 * Instead of going via framework, grab the request from the browser itself
@@ -115,31 +135,22 @@ var EWS = function() {
 			reqHeaders[header] = value;
 		};
 		this.send = function(data) {
-			var d, i, d2 = {}, key, value, parts;
+			var d = {}, u;
 			data = data || "";
 			this.readyState = OPENED;
-			// break apart the data appropriately
-			d = data.split("&");
-			for (i=0;i<d.length;i++) {
-				parts = d[i].split("=");
-				if (parts.length > 0) {
-					key = parts[0].replace("+"," ");
-					
-				}
-				if (parts.length > 1) {
-					value = parts[1].replace("+"," ");
-				} else {
-					value = "";
-				}
-				if (key && key !== "") {
-					d2[key] = value;
-				}
+			// break apart the url appropriately - do we have a query?
+			u = params.url.split("?");
+			params.url = u[0];
+			// take the query
+			if (u.length>1) {
+				d = paramSplitter(u[1],d);
 			}
+			d = paramSplitter(data,d);
 			if (params.async) {
 				// ajax as async, so fork it
-				fork({scope: this, arg: [params, reqHeaders, d2], fn: processCall});
+				fork({scope: this, arg: [params, reqHeaders, d], fn: processCall});
 			} else {
-				processCall.call(this, params, reqHeaders, d2);
+				processCall.call(this, params, reqHeaders, d);
 			}
 		};
 		this.abort = function() {
