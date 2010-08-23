@@ -334,7 +334,7 @@ var EWS = function() {
 		},
 		load: function(path,cb) {
 			var res = sjax(path);
-			cb(res.response,res.status);
+			cb(res.responseText,res.status);
 		}
 	};
 	
