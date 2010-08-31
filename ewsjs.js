@@ -47,7 +47,7 @@ var EWS = function() {
 				key = parts[0].replace("+"," ");
 
 			}
-			value = parts.length > 1 ? parts[1].replace("+"," ") : "";
+			value = parts.length > 1 ? parts[1].replace(/\+/g," ") : "";
 			if (key && key !== "") {
 				d2[key] = value;
 			}
