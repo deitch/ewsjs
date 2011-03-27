@@ -135,7 +135,7 @@ var EWS = function() {
 			reqHeaders[header] = value;
 		};
 		this.send = function(data) {
-			var d = {}, u;
+			var d = {}, u, ret;
 			data = data || "";
 			this.readyState = OPENED;
 			// break apart the url appropriately - do we have a query?
@@ -148,10 +148,12 @@ var EWS = function() {
 			d = paramSplitter(data,d);
 			if (params.async) {
 				// ajax as async, so fork it
+				ret = null;
 				fork({scope: this, arg: [params, reqHeaders, d], fn: processCall});
 			} else {
-				processCall.call(this, params, reqHeaders, d);
+				ret = processCall.call(this, params, reqHeaders, d);
 			}
+			return(ret);
 		};
 		this.abort = function() {
 			abort = true;
@@ -239,7 +241,9 @@ var EWS = function() {
 	};
 	// to process a call - separate because it can get nested
 	processCall = function(params, headers, data, url) {
-		var h, res, i, j, match, key, processed = false, p;
+		var h, res, i, j, match, key, processed = false, p, ret = null, async;
+		params = params || {};
+		async = params.async || true;
 		url = url ? url : params.url;
 		for (i=0;i<rewrites.length;i++) {
 			match = rewrites[i].re.exec(url);
@@ -277,7 +281,7 @@ var EWS = function() {
 			
 			// first look for an exact match
 			if (handlers.path[url]) {
-				res = handlers.path[url](params.method,params.url,headers,data,db);
+				ret = handlers.path[url]({method: params.method,url: params.url,headers: headers,data: data,db: db});
 				processed = true;
 			} else {
 				// no exact match, look for a regex match
@@ -290,7 +294,7 @@ var EWS = function() {
 							// regex matches start at 1, but the params array starts at 0
 							p[h.params[j]] = match[j+1];
 						}
-						res = handlers.regex[i].fn(params.method,params.url,headers,data,db,p);
+						ret = handlers.regex[i].fn({method: params.method,url: params.url,headers: headers,data: data,db: db,params: p});
 						processed = true;
 						break;
 					}
@@ -300,12 +304,12 @@ var EWS = function() {
 			// did we process it?
 			if (!processed) {
 				if (auto) {
-					res = auto(params.method,params.url,headers,data,db);
+					ret = auto({method: params.method,url: params.url,headers: headers,data: data,db: db});
 				} else {
-					res = {status: 404};
+					ret = {status: 404};
 				}
 			}
-			params.cb(res);
+			params.cb(ret);
 		}
 	};
 
