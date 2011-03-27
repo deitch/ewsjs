@@ -24,21 +24,21 @@
 				
 				router = {
 					"/person": {
-						"GET": function(method,url,headers,data,db,p) {
+						"GET": function(config) {
 							// get the persons from our db
 							return({status: 200, response: dbcache.person, headers: {"Content-Type":"application/json"}});
 						},
-						"POST": function(method,url,headers,data,db,p) {
+						"POST": function(config) {
 							// increment the unique ID
 							id++;
-							data.id = id+""; // we keep string IDs
-							dbcache.person.push(data);
+							config.data.id = id+""; // we keep string IDs
+							dbcache.person.push(config.data);
 							return({status:201,response:id,headers: {"Content-Type":"text/plain"}});
 						}
 					},
 					"/person/:id": {
-						"GET": function(method,url,headers,data,db,p) {
-							var idx = findById(p.id), ret;
+						"GET": function(config) {
+							var idx = findById(config.params.id), ret;
 							if (idx > -1) {
 								ret = {status: 200, response: JSON.stringify(dbcache.person[idx]),headers: {"Content-Type":"application/json"}};
 							} else {
@@ -47,19 +47,19 @@
 
 							return(ret);
 						},
-						"PUT": function(method,url,headers,data,db,p) {
-							var ret, idx = findById(p.id);
+						"PUT": function(config) {
+							var ret, idx = findById(config.params.id);
 							if (idx > -1) {
-								dbcache.person[idx].firstName = data.firstName;
-								dbcache.person[idx].lastName = data.lastName;
+								dbcache.person[idx].firstName = config.data.firstName;
+								dbcache.person[idx].lastName = config.data.lastName;
 								ret = {status: 200};
 							} else {
 								ret = {status: 404};
 							}
 							return(ret);
 						},
-						"DELETE": function(method,url,headers,data,db,p) {
-							var ret, idx = findById(p.id);
+						"DELETE": function(config) {
+							var ret, idx = findById(config.params.id);
 							if (idx > -1) {
 								dbcache.person.splice(idx,1);
 								ret = {status:200};
@@ -72,9 +72,9 @@
 				};
 				// simple to wrap around the actual handler, makes it easier to handle GET/PUT/POST/DELETE
 				var handlerFn = function(r) {
-					return function(method,url,headers,data,db,p){
-						if (r[method]) {
-							return(r[method](method,url,headers,data,db,p));
+					return function(config){
+						if (r[config.method]) {
+							return(r[config.method](config));
 						}
 					};
 				};
