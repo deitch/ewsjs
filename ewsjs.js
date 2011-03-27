@@ -9,7 +9,7 @@ var EWS = function() {
 	// handlers
 	var handlers = {path: {}, regex: []}, rewrites = [], auto = false, autoIndex = false;
 	var originalXmlHttp, originalActiveX, replaceXmlHttp, replaceActiveX, isEnabled = false;
-	var processCall, isDirListing, fork, sjax, paramSplitter;
+	var processCall, isDirListing, fork, ajax, paramSplitter;
 	
 	// hold data across calls
 	var db = {};
@@ -19,7 +19,7 @@ var EWS = function() {
 	var PATH_REPLACER = "([^\/]+)",PATH_NAME_MATCHER = /:([\w\d]+)/g;
 	// var QUERY_STRING_MATCHER = /\?([^#]*)$/;
 	
-	// utility functions: fork, sjax, localGet
+	// utility functions: fork, ajax, localGet
 	fork = function() {
 		var fn, window = this;
 		if (window && window.setTimeout) {
@@ -175,9 +175,15 @@ var EWS = function() {
 		}
 	};
 	
-	sjax = function(url) {
-		// get the file via Sjax, and respond with results
-		var xmlHttp, method = "GET";
+	ajax = function(config) {
+		// get the file via [s|a]jax, and respond with results
+		var xmlHttp, method = "GET", url, async, cb, ret;
+		config = config || {};
+		
+		async = config.async || false;
+		url = config.url;
+		cb = config.cb;
+		
 		// asynch most of the time
 		try {
 		    // Firefox, Opera 8.0+, Safari
@@ -196,14 +202,30 @@ var EWS = function() {
 		    }
 		 }
 
-		 try {
-			// open the request
-			xmlHttp.open(method,url,false);
-			xmlHttp.send(null);
-			return({status: 200, responseText: xmlHttp.responseText, responseXML: xmlHttp.responseXML});
-		} catch (e3) {
-			return({status: 404});
+		if (async) {
+			xmlHttp.onreadystatechange = function() {
+				if (xmlHttp.readyState==4) {
+					if (xmlHttp.status === 200) {
+						cb({status: 200, responseText: xmlHttp.responseText, responseXML: xmlHttp.responseXML});
+					} else {
+						cb({status: xmlHttp.status});
+					}
+			   	}
+			};
 		}
+		try {
+			// open the request
+			xmlHttp.open(method,url,async);
+			xmlHttp.send(null);
+			ret = {status: 200, responseText: xmlHttp.responseText, responseXML: xmlHttp.responseXML};
+		} catch (e3) {
+			ret = {status: 404};
+		}
+		// if not async, return it directly
+		if (!async) {
+			return(ret);
+		}
+		
 	};
 	// determine if something is a directory listing
 	isDirListing = function(data,url) {
@@ -239,10 +261,10 @@ var EWS = function() {
 			// always load it first from the filesystem
 			if (!db[url]) {
 				// look for the file
-				res = sjax(url);
+				res = ajax({url: url,async: false});
 				// we use auto if we failed, or if we got a directory listing
 				if ((!res.success || isDirListing(res.response,url)) && autoIndex) {
-					res = sjax(url+"/"+autoIndex);
+					res = ajax({url: url+"/"+autoIndex,async: false});
 					if (res.status === 200) {
 						db[url] = res.responseText;
 					}																
@@ -343,9 +365,10 @@ var EWS = function() {
 		setAutoIndex: function(newAutoIndex) {
 			autoIndex = newAutoIndex;
 		},
-		load: function(path,cb) {
-			var res = sjax(path);
-			cb(res.responseText,res.status);
+		load: function(path,cb,async) {
+			var res = ajax({url: path, async: async, cb: cb}), ret;
+			ret = async ? res : null;
+			return(ret);
 		}
 	};
 	
