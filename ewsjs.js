@@ -346,7 +346,7 @@ var EWS = function() {
 	        }
 	        // replace with the path replacement
 			if (param_names.length > 0) {
-				path = new RegExp("^" + path.replace(PATH_NAME_MATCHER, PATH_REPLACER) + "$");
+				path = new RegExp("^" + path.replace(/\./g,"\\.").replace(PATH_NAME_MATCHER, PATH_REPLACER) + "$");
 				// we have a regex
 				handlers.regex.push({fn: handler, path: path, params: param_names});
 			} else {
