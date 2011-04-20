@@ -371,7 +371,7 @@ var EWS = function() {
 		},
 		load: function(path,cb,async) {
 			var res = ajax({url: path, async: async, cb: cb}), ret;
-			ret = async ? res : null;
+			ret = async ? null : res;
 			return(ret);
 		}
 	};
