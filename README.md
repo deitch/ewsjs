@@ -155,18 +155,18 @@ Where:
 ## Order of Processing
 With each request, EWS follows the following order, assuming it has been enabled:
 
-# Check for rewrite matches:
-#* Yes: rewrite and go back to beginning
-#* No: next step
-# Check for data cache in db
-#* Yes: next step
-#* No: try to load into db and then go to next step
-# Look for exact path match
-#* Yes: pass to handler and done
-#* No: next step
-# Look for parametrized path handler
-#* Yes: pass to handler and done
-#* No: next step
-# Look for catch-all handler
-#* Yes: pass to handler and done
-#* No: return 404
+1. Check for rewrite matches:
+1.* Yes: rewrite and go back to beginning
+1.* No: next step
+2. Check for data cache in db
+2.* Yes: next step
+2.* No: try to load into db and then go to next step
+3. Look for exact path match
+3.* Yes: pass to handler and done
+3.* No: next step
+4. Look for parametrized path handler
+4.* Yes: pass to handler and done
+4.* No: next step
+5. Look for catch-all handler
+5.* Yes: pass to handler and done
+5.* No: return 404
