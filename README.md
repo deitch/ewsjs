@@ -116,3 +116,57 @@ You can register as many rewrite handlers as you want.
 
 Every request received by EWS will be matched against all rewrite regular expressions. As soon as a match is found, processing stops, the url is changed to the path from the registration, and a new request is processed. No matter how many rewrites are performed, even 10 chained one after the other, the original request URL will always be passed to the final handler as config.url.
 
+## DB Cache
+EWS has the concept of a "database", more correctly a file cache. It automatically loads this file cache when requests come in, and passes the data to the handlers as the 'db' property of the config parameter.
+
+Let us assume that a request is made for '/foo/bar.html'. Before passing the request to the registered handler, EWS will try to load '/foo/bar.html' from the original source (file:// or http://). Once it is either loaded or has failed to load, the request will then be passed to the appropriate handler.
+
+If the load was successful, the retrieved data will be stored in an internal in-memory cache (we got really wild and called it 'db'), keyed to the URL. Thus, in our case, if the file retrieved contained '<html></html>' (really complex file!):
+
+````JavaScript
+db['/foo/bar.html'] = '<html></html>';
+````
+
+This entire db is accessible to every handler function via config.db, as listed above.
+
+### Auto Index
+When loading the db with data from the server/filesystem, you can set an auto-index path to be used. For example, if you request '/foo', and if foo is a directory and you want it to automatically look for '/foo/index.html', you can tell it to do so:
+
+````JavaScript
+EWS.setAutoIndex('index.html');
+````
+
+## Overriding
+Sometimes, you actually want to go to the server, not via EWS, even if EWS.enable is true. The most common case is if one of your handlers needs to retrieve data from the server!
+
+Fortunately, EWS provides a tool to call the 'real' ajax function.
+
+````JavaScript
+EWS.load(path,callback,async);
+````
+
+Where:
+
+* path: path to request. 
+* callback: callback to call when complete. Signature will match the normal xmlHttpRequest signature.
+* async: whether to make the request async or sync. 
+
+
+## Order of Processing
+With each request, EWS follows the following order, assuming it has been enabled:
+
+# Check for rewrite matches:
+#* Yes: rewrite and go back to beginning
+#* No: next step
+# Check for data cache in db
+#* Yes: next step
+#* No: try to load into db and then go to next step
+# Look for exact path match
+#* Yes: pass to handler and done
+#* No: next step
+# Look for parametrized path handler
+#* Yes: pass to handler and done
+#* No: next step
+# Look for catch-all handler
+#* Yes: pass to handler and done
+#* No: return 404
